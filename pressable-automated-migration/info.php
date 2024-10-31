@@ -10,7 +10,8 @@ if (!class_exists('PBLInfo')) :
 		public $badgeinfo = 'pblbadge';
 		public $ip_header_option = 'pblipheader';
 		public $brand_option = 'pblbrand';
-		public $version = '5.56';
+		public $wp_lp_whitelabel_option = 'pblLpWhitelabelConf';
+		public $version = '5.81';
 		public $webpage = 'https://pressable.com';
 		public $appurl = 'https://migrate.blogvault.net';
 		public $slug = 'pressable-automated-migration/pressable.php';
@@ -21,7 +22,8 @@ if (!class_exists('PBLInfo')) :
 		public $author = 'Pressable';
 		public $title = 'Pressable Automated Migration';
 
-		const DB_VERSION = '4';
+		const DB_VERSION = '5';
+		const AL_CONF_VERSION = '1.1';
 
 		public function __construct($settings) {
 			$this->settings = $settings;
@@ -60,7 +62,10 @@ if (!class_exists('PBLInfo')) :
 		public function getConnectionKey() {
 			require_once dirname( __FILE__ ) . '/recover.php';
 			$bvsiteinfo = new PBLWPSiteInfo();
-			return base64_encode(PBLRecover::defaultSecret($this->settings).":".$bvsiteinfo->siteurl());
+			$encoded_url = base64_encode($bvsiteinfo->siteurl());
+			$secret = PBLRecover::defaultSecret($this->settings);
+
+			return base64_encode("v2:".$secret.":".$encoded_url.":".$this->plugname);
 		}
 
 		public function getDefaultSecret() {
@@ -131,6 +136,11 @@ if (!class_exists('PBLInfo')) :
 		public function getPluginsWhitelabelInfos() {
 			$whitelabel_infos = $this->settings->getOption($this->brand_option);
 			return is_array($whitelabel_infos) ? $whitelabel_infos : array();
+		}
+
+		public function getLPWhitelabelInfo() {
+			$infos = $this->settings->getOption($this->wp_lp_whitelabel_option);
+			return is_array($infos) ? $infos : array();
 		}
 
 		public function getPluginsWhitelabelInfoByTitle() {

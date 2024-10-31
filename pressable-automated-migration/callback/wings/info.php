@@ -10,7 +10,7 @@ class BVInfoCallback extends BVCallbackBase {
 	public $bvinfo;
 	public $bvapi;
 	
-	const INFO_WING_VERSION = 2.2;
+	const INFO_WING_VERSION = 2.6;
 
 	public function __construct($callback_handler) {
 		$this->db = $callback_handler->db;
@@ -178,6 +178,8 @@ class BVInfoCallback extends BVCallbackBase {
 			'contentdir' => defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : null,
 			'contenturl' => defined('WP_CONTENT_URL') ? WP_CONTENT_URL : null,
 			'plugindir' => defined('WP_PLUGIN_DIR') ? WP_PLUGIN_DIR : null,
+			'themedir' => get_stylesheet_directory(),
+			'templatedir' => get_template_directory(),
 			'dbcharset' => defined('DB_CHARSET') ? DB_CHARSET : null,
 			'disallow_file_edit' => defined('DISALLOW_FILE_EDIT'),
 			'disallow_file_mods' => defined('DISALLOW_FILE_MODS'),
@@ -185,7 +187,9 @@ class BVInfoCallback extends BVCallbackBase {
 			'custom_usermeta' => defined('CUSTOM_USERMETA_TABLE') ? CUSTOM_USERMETA_TABLE : null,
 			'locale' => get_locale(),
 			'wp_local_string' => $wp_local_package,
-			'charset_collate' => $db->getCharsetCollate()
+			'charset_collate' => $db->getCharsetCollate(),
+			'allowed_paths' => ini_get('open_basedir'),
+			'path_seprator' => PATH_SEPARATOR
 		);
 		return $wp_info;
 	}
@@ -225,6 +229,12 @@ class BVInfoCallback extends BVCallbackBase {
 		}
 		if (function_exists('openssl_public_decrypt')) {
 			$info['openssl_public_decrypt'] = "1";
+		}
+		if (function_exists('openssl_encrypt')) {
+			$info['openssl_encrypt'] = "1";
+		}
+		if (function_exists('openssl_decrypt')) {
+			$info['openssl_decrypt'] = "1";
 		}
 		$info['sha1'] = "1";
 		$info['apissl'] = "1";
@@ -274,7 +284,14 @@ class BVInfoCallback extends BVCallbackBase {
 
 	public function getHostInfo() {
 		$host_info = $_SERVER;
-		$host_info['PHP_SERVER_NAME'] = php_uname('\n');
+		if (function_exists('php_uname')) {
+			$host_info['PHP_SERVER_NAME'] = php_uname('\n');
+		}
+
+		if (isset($_SERVER['SERVER_ADDR']) && function_exists('gethostbyaddr')) {
+			$host_info['HOST_FROM_IP'] = gethostbyaddr($_SERVER['SERVER_ADDR']);
+		}
+
 		if (array_key_exists('IS_PRESSABLE', get_defined_constants())) {
 			$host_info['IS_PRESSABLE'] = true;
 		}

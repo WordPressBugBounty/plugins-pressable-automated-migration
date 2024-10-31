@@ -247,7 +247,7 @@ if (!class_exists('BVCallbackRequest')) :
 				return false;
 			}
 
-			$key_file = dirname( __FILE__ ) . '/../public_keys/' . $this->pubkey_name . '.pub';
+			$key_file = dirname( __DIR__ ) . '/public_keys/' . $this->pubkey_name . '.pub';
 			if (!file_exists($key_file)) {
 				$this->error["message"] = "PUBLIC_KEY_NOT_FOUND";
 				return false;
@@ -296,6 +296,7 @@ if (!class_exists('BVCallbackRequest')) :
 				"bvinfo" => $bvinfo->info(),
 				"statusmsg" => "FAILED_AUTH",
 				"api_pubkey" => substr($api_public_key, 0, 8),
+				"def_key_status" => PBLRecover::getSecretStatus($this->settings),
 				"def_sigmatch" => substr(hash('sha1', $this->method.$default_secret.$this->time.$this->version), 0, 8)
 			);
 

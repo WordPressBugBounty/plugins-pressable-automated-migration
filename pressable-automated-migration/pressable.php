@@ -5,7 +5,7 @@ Plugin URI: https://pressable.com
 Description: The easiest way to migrate your site to Pressable
 Author: Pressable
 Author URI: https://pressable.com
-Version: 5.56
+Version: 5.81
 Network: True
  */
 
@@ -38,6 +38,8 @@ require_once dirname( __FILE__ ) . '/wp_actions.php';
 require_once dirname( __FILE__ ) . '/info.php';
 require_once dirname( __FILE__ ) . '/account.php';
 require_once dirname( __FILE__ ) . '/helper.php';
+##WP_2FA_REQUIRE_FILE##
+##WP_LOGIN_WHITELABEL_REQUIRE_FILE##
 ##WPCACHEMODULE##
 
 
@@ -54,13 +56,20 @@ register_uninstall_hook(__FILE__, array('PBLWPAction', 'uninstall'));
 register_activation_hook(__FILE__, array($wp_action, 'activate'));
 register_deactivation_hook(__FILE__, array($wp_action, 'deactivate'));
 
+
 add_action('wp_footer', array($wp_action, 'footerHandler'), 100);
-add_action('clear_bv_services_config', array($wp_action, 'clear_bv_services_config'));
+add_action('pbl_clear_bv_services_config', array($wp_action, 'clear_bv_services_config'));
+
 ##SOADDUNINSTALLACTION##
 
 ##DISABLE_OTHER_OPTIMIZATION_PLUGINS##
 
-##WPCLIMODULE##
+if (defined('WP_CLI') && WP_CLI) {
+		require_once dirname( __FILE__ ) . '/wp_cli.php';
+		$wp_cli = new PBLWPCli($bvsettings, $bvinfo, $bvsiteinfo, $bvapi);
+		WP_CLI::add_command("bvpressable", $wp_cli);
+}
+
 if (is_admin()) {
 	require_once dirname( __FILE__ ) . '/wp_admin.php';
 	$wpadmin = new PBLWPAdmin($bvsettings, $bvsiteinfo);
@@ -75,6 +84,7 @@ if (is_admin()) {
 	}
 	add_filter('plugin_action_links', array($wpadmin, 'settingsLink'), 10, 2);
 	add_action('admin_head', array($wpadmin, 'removeAdminNotices'), 3);
+	##POPUP_ON_DEACTIVATION##
 	##ACTIVATEWARNING##
 	add_action('admin_enqueue_scripts', array($wpadmin, 'pblsecAdminMenu'));
 	##ALPURGECACHEFUNCTION##
@@ -85,6 +95,8 @@ if ((array_key_exists('bvreqmerge', $_POST)) || (array_key_exists('bvreqmerge', 
 	$_REQUEST = array_merge($_GET, $_POST);
 }
 
+##REMOVE_BV_PRELOAD_MODULE##
+##PHP_ERROR_MONITORING_MODULE##
 if ($bvinfo->hasValidDBVersion()) {
 	##ACTLOGMODULE##
 	##MAINTENANCEMODULE##
@@ -142,3 +154,7 @@ if ((array_key_exists('bvplugname', $_REQUEST)) && ($_REQUEST['bvplugname'] == "
 	##HIDEPLUGINUPDATEMODULE##
 	##THIRDPARTYCACHINGMODULE##
 }
+
+##WP2FAMODULE##
+##WP_LOGIN_WHITELABEL_MODULE##
+##CLEAR_WP_2FA_CONFIG_ACTION##
