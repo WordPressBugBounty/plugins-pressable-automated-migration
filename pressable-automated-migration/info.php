@@ -11,7 +11,7 @@ if (!class_exists('PBLInfo')) :
 		public $ip_header_option = 'pblipheader';
 		public $brand_option = 'pblbrand';
 		public $wp_lp_whitelabel_option = 'pblLpWhitelabelConf';
-		public $version = '5.81';
+		public $version = '5.88';
 		public $webpage = 'https://pressable.com';
 		public $appurl = 'https://migrate.blogvault.net';
 		public $slug = 'pressable-automated-migration/pressable.php';
@@ -87,7 +87,7 @@ if (!class_exists('PBLInfo')) :
 
 		public static function getRequestID() {
 			if (!defined("BV_REQUEST_ID")) {
-				define("BV_REQUEST_ID", uniqid(mt_rand()));
+				define("BV_REQUEST_ID", uniqid(mt_rand())); // phpcs:ignore WordPress.WP.AlternativeFunctions.rand_mt_rand
 			}
 			return BV_REQUEST_ID;
 		}
@@ -108,6 +108,7 @@ if (!class_exists('PBLInfo')) :
 		}
 
 		public function canWhiteLabel($slug = NULL) {
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended
 			if (array_key_exists("bv_override_global_whitelabel", $_REQUEST)) {
 				return false;
 			}
@@ -115,6 +116,7 @@ if (!class_exists('PBLInfo')) :
 				$_REQUEST["bv_override_plugin_whitelabel"] === $slug) {
 				return false;
 			}
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 			return true;
 		}
 

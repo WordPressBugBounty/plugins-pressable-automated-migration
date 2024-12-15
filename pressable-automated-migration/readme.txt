@@ -4,7 +4,7 @@ Tags: pressable, migration
 Requires at least: 4.0
 Tested up to: 6.7
 Requires PHP: 5.6.0
-Stable tag: 5.81
+Stable tag: 5.88
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,10 @@ Once you've reviewed the site for correctness, you are ready to **[send your sit
 == Screenshots ==
 
 == Changelog ==
+= 5.88 =
+* Tweak: Code Restructuring
+* Tweak: Added support for PHP 8.4
+
 = 5.81 =
 * New: Added WP CLI Support
 * New: Introduced Key Based Migration
