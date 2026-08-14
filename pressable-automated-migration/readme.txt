@@ -1,10 +1,10 @@
 === Pressable Automated Migration ===
-Contributors: pressable, akshatc
+Contributors: pressable, blogvault, akshatc
 Tags: pressable, migration
 Requires at least: 4.0
-Tested up to: 7.0 
-Requires PHP: 5.6.0
-Stable tag: 5.88
+Tested up to: 7.1
+Requires PHP: 7.0
+Stable tag: 6.65
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,6 +70,16 @@ Once you've reviewed the site for correctness, you are ready to **[send your sit
 == Screenshots ==
 
 == Changelog ==
+= 6.65 =
+* Improvement: Enhanced secret generation using the secure random_int function.
+* Improvement: Improved connection key generation mechanism.
+* Improvement: Optimized migration of large database tables.
+* Tweak: Improved file upload handling.
+* Tweak: Improved validation for streamed callback responses.
+* Compatibility: Requires PHP 7.0 or newer.
+* Tweak: Improvements in fetching File Stats.
+* Tweak: Code Restructuring.
+
 = 5.88 =
 * Tweak: Code Restructuring
 * Tweak: Added support for PHP 8.4

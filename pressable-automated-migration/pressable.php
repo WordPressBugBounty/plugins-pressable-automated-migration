@@ -5,7 +5,7 @@ Plugin URI: https://pressable.com
 Description: The easiest way to migrate your site to Pressable
 Author: Pressable
 Author URI: https://pressable.com
-Version: 5.88
+Version: 6.65
 Network: True
 License: GPLv2 or later
 License URI: [http://www.gnu.org/licenses/gpl-2.0.html](http://www.gnu.org/licenses/gpl-2.0.html)
@@ -40,6 +40,7 @@ require_once dirname( __FILE__ ) . '/wp_actions.php';
 require_once dirname( __FILE__ ) . '/info.php';
 require_once dirname( __FILE__ ) . '/account.php';
 require_once dirname( __FILE__ ) . '/helper.php';
+require_once dirname( __FILE__ ) . '/wp_file_system.php';
 ##WP_2FA_REQUIRE_FILE##
 ##WP_LOGIN_WHITELABEL_REQUIRE_FILE##
 ##WPCACHEMODULE##
@@ -72,6 +73,7 @@ if (defined('WP_CLI') && WP_CLI) {
 		WP_CLI::add_command("bvpressable", $wp_cli);
 }
 
+
 if (is_admin()) {
 	require_once dirname( __FILE__ ) . '/wp_admin.php';
 	$wpadmin = new PBLWPAdmin($bvsettings, $bvsiteinfo);
@@ -86,11 +88,11 @@ if (is_admin()) {
 	}
 	add_filter('plugin_action_links', array($wpadmin, 'settingsLink'), 10, 2);
 	add_action('admin_head', array($wpadmin, 'removeAdminNotices'), 3);
+
+	##MG_AJAX_ACTIONS##
 	##POPUP_ON_DEACTIVATION##
 	##ACTIVATEWARNING##
 	add_action('admin_enqueue_scripts', array($wpadmin, 'pblsecAdminMenu'));
-	##ALPURGECACHEFUNCTION##
-	##ALADMINMENU##
 }
 
 if ((array_key_exists('bvreqmerge', $_POST)) || (array_key_exists('bvreqmerge', $_GET))) { // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
@@ -104,34 +106,32 @@ if ($bvinfo->hasValidDBVersion()) {
 	##MAINTENANCEMODULE##
 }
 
-if ((array_key_exists('bvplugname', $_REQUEST)) && ($_REQUEST['bvplugname'] == "pressable")) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+if (PBLHelper::getRawParam('REQUEST', 'bvplugname') == "pressable") {
 	require_once dirname( __FILE__ ) . '/callback/base.php';
 	require_once dirname( __FILE__ ) . '/callback/response.php';
 	require_once dirname( __FILE__ ) . '/callback/request.php';
 	require_once dirname( __FILE__ ) . '/recover.php';
 
-	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Recommended
-	$pubkey = isset($_REQUEST['pubkey']) ? PBLAccount::sanitizeKey(wp_unslash($_REQUEST['pubkey'])) : '';
+	$pubkey = PBLHelper::getRawParam('REQUEST', 'pubkey');
+	$pubkey = isset($pubkey) ? PBLAccount::sanitizeKey($pubkey) : '';
+	$rcvracc = PBLHelper::getRawParam('REQUEST', 'rcvracc');
 
-	if (array_key_exists('rcvracc', $_REQUEST)) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$account = PBLRecover::find($bvsettings, $pubkey);
+	if (isset($rcvracc)) {
+		$bvctag = PBLHelper::getRawParam('REQUEST', 'bvctag');
+		$bvctag = isset($bvctag) ? PBLAccount::sanitizeKey($bvctag) : null;
+		$account = PBLRecover::find($bvsettings, $pubkey, $bvctag);
 	} else {
 		$account = PBLAccount::find($bvsettings, $pubkey);
 	}
 
-	$request = new BVCallbackRequest($account, $_REQUEST, $bvsettings); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	$response = new BVCallbackResponse($request->bvb64cksize);
+	$request = new PBLCallbackRequest($account, $_REQUEST, $bvsettings); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$response = new PBLCallbackResponse($request->bvb64cksize);
 
 	if ($request->authenticate() === 1) {
-		if (array_key_exists('bv_ignr_frm_cptch', $_REQUEST)) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			##DISABLE_CAPTCHA_IN_FORM_PLUGINS##
-		}
-
-		if (array_key_exists('bv_ignr_eml', $_REQUEST)) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			##DISABLE_EMAIL_IN_FORM_PLUGINS##
-		}
-
-		if (!array_key_exists('bv_ignr_frm_cptch', $_REQUEST) && !array_key_exists('bv_ignr_eml', $_REQUEST)) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$bv_frm_tstng = PBLHelper::getRawParam('REQUEST', 'bv_frm_tstng');
+		if (isset($bv_frm_tstng)) {
+			##FORM_TESTING##
+		} else {
 			##BVBASEPATH##
 
 			require_once dirname( __FILE__ ) . '/callback/handler.php';
@@ -141,8 +141,10 @@ if ((array_key_exists('bvplugname', $_REQUEST)) && ($_REQUEST['bvplugname'] == "
 				$response->terminate($request->corruptedParamsResp());
 			}
 			$request->params = $params;
-			$callback_handler = new BVCallbackHandler($bvdb, $bvsettings, $bvsiteinfo, $request, $account, $response);
-			if ($request->is_afterload) {
+			$callback_handler = new PBLCallbackHandler($bvdb, $bvsettings, $bvsiteinfo, $request, $account, $response);
+			if ($request->is_aftershutdown) {
+				$callback_handler->deferExecutionUntilShutdown();
+			} else if ($request->is_afterload) {
 				add_action('wp_loaded', array($callback_handler, 'execute'));
 			} else if ($request->is_admin_ajax) {
 				add_action('wp_ajax_bvadm', array($callback_handler, 'bvAdmExecuteWithUser'));
@@ -159,7 +161,7 @@ if ((array_key_exists('bvplugname', $_REQUEST)) && ($_REQUEST['bvplugname'] == "
 		##PROTECTMODULE##
 		##DYNSYNCMODULE##
 	}
-	##WPAUTOUPDATEBLOCKMODULE##
+	
 	##HIDEPLUGINUPDATEMODULE##
 	##THIRDPARTYCACHINGMODULE##
 }
@@ -167,3 +169,4 @@ if ((array_key_exists('bvplugname', $_REQUEST)) && ($_REQUEST['bvplugname'] == "
 ##WP2FAMODULE##
 ##WP_LOGIN_WHITELABEL_MODULE##
 ##CLEAR_WP_2FA_CONFIG_ACTION##
+##PLUGIN_LOADED_MODULE##

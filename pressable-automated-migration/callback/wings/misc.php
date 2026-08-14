@@ -1,9 +1,9 @@
 <?php
 
 if (!defined('ABSPATH')) exit;
-if (!class_exists('BVMiscCallback')) :
+if (!class_exists('PBLMiscCallback')) :
 	
-class BVMiscCallback extends BVCallbackBase {
+class PBLMiscCallback extends PBLCallbackBase {
 	public $settings;
 	public $bvinfo;
 	public $siteinfo;

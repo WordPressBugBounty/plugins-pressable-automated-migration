@@ -1,9 +1,9 @@
 <?php
 
 if (!defined('ABSPATH')) exit;
-if (!class_exists('BVCallbackHandler')) :
+if (!class_exists('PBLCallbackHandler')) :
 
-	class BVCallbackHandler {
+	class PBLCallbackHandler {
 		public $db;
 		public $settings;
 		public $siteinfo;
@@ -47,67 +47,131 @@ if (!class_exists('BVCallbackHandler')) :
 			$this->response->terminate($resp);
 		}
 
+		public function deferExecutionUntilShutdown() {
+			if (function_exists('error_clear_last')) {
+				error_clear_last();
+			}
+			ob_start();
+			remove_action('shutdown', 'wp_ob_end_flush_all', 1);
+			add_action('shutdown', array($this, 'scheduleExecutionAfterShutdown'), PHP_INT_MAX);
+		}
+
+		public function scheduleExecutionAfterShutdown() {
+			register_shutdown_function(array($this, 'executeAfterShutdown'));
+		}
+
+		public function executeAfterShutdown() {
+			if ($this->request->keep_page_output) {
+				$this->removeContentLengthHeader();
+				$this->execute();
+				return;
+			}
+			if ($this->shouldPreserveFrontendResponse()) {
+				return;
+			}
+			$this->discardBufferedOutput();
+			$this->clearFrontendResponseHeaders();
+			$this->execute();
+		}
+
+		private function shouldPreserveFrontendResponse() {
+			if ($this->hasFatalError() || headers_sent()) {
+				return true;
+			}
+			if (!function_exists('http_response_code')) {
+				return false;
+			}
+			$response_code = http_response_code();
+			return $response_code !== false && $response_code !== 200;
+		}
+
+		private function hasFatalError() {
+			$error = error_get_last();
+			$fatal_types = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR);
+			return is_array($error) && in_array($error['type'], $fatal_types, true);
+		}
+
+		private function discardBufferedOutput() {
+			while (ob_get_level() > 0) {
+				if (!@ob_end_clean()) {
+					break;
+				}
+			}
+		}
+
+		private function clearFrontendResponseHeaders() {
+			$this->removeContentLengthHeader();
+			header_remove('Content-Encoding');
+			header_remove('Location');
+		}
+
+		private function removeContentLengthHeader() {
+			if (!headers_sent()) {
+				header_remove('Content-Length');
+			}
+		}
+
 		public function routeRequest() {
 			switch ($this->request->wing) {
 			case 'manage':
 				require_once dirname( __FILE__ ) . '/wings/manage.php';
-				$module = new BVManageCallback($this);
+				$module = new PBLManageCallback($this);
 				break;
 			case 'fs':
 				require_once dirname( __FILE__ ) . '/wings/fs.php';
-				$module = new BVFSCallback($this);
+				$module = new PBLFSCallback($this);
 				break;
 			case 'db':
 				require_once dirname( __FILE__ ) . '/wings/db.php';
-				$module = new BVDBCallback($this);
+				$module = new PBLDBCallback($this);
 				break;
 			case 'info':
 				require_once dirname( __FILE__ ) . '/wings/info.php';
-				$module = new BVInfoCallback($this);
+				$module = new PBLInfoCallback($this);
 				break;
 			case 'dynsync':
 				require_once dirname( __FILE__ ) . '/wings/dynsync.php';
-				$module = new BVDynSyncCallback($this);
+				$module = new PBLDynSyncCallback($this);
 				break;
 			case 'ipstr':
 				require_once dirname( __FILE__ ) . '/wings/ipstore.php';
-				$module = new BVIPStoreCallback($this);
+				$module = new PBLIPStoreCallback($this);
 				break;
 			case 'wtch':
 				require_once dirname( __FILE__ ) . '/wings/watch.php';
-				$module = new BVWatchCallback($this);
+				$module = new PBLWatchCallback($this);
 				break;
 			case 'brand':
 				require_once dirname( __FILE__ ) . '/wings/brand.php';
-				$module = new BVBrandCallback($this);
+				$module = new PBLBrandCallback($this);
 				break;
 			case 'pt':
 				require_once dirname( __FILE__ ) . '/wings/protect.php';
-				$module = new BVProtectCallback($this);
+				$module = new PBLProtectCallback($this);
 				break;
 			case 'act':
 				require_once dirname( __FILE__ ) . '/wings/account.php';
-				$module = new BVAccountCallback($this);
+				$module = new PBLAccountCallback($this);
 				break;
 			case 'fswrt':
 				require_once dirname( __FILE__ ) . '/wings/fs_write.php';
-				$module = new BVFSWriteCallback();
+				$module = new PBLFSWriteCallback();
 				break;
 			case 'actlg':
 				require_once dirname( __FILE__ ) . '/wings/actlog.php';
-				$module = new BVActLogCallback($this);
+				$module = new PBLActLogCallback($this);
 				break;
 			case 'speed':
 				require_once dirname( __FILE__ ) . '/wings/speed.php';
-				$module = new BVSpeedCallback($this);
+				$module = new PBLSpeedCallback($this);
 				break;
 			case 'scrty':
 				require_once dirname( __FILE__ ) . '/wings/security.php';
-				$module = new BVSecurityCallback($this);
+				$module = new PBLSecurityCallback($this);
 				break;
 			default:
 				require_once dirname( __FILE__ ) . '/wings/misc.php';
-				$module = new BVMiscCallback($this);
+				$module = new PBLMiscCallback($this);
 				break;
 			}
 			$resp = $module->process($this->request);

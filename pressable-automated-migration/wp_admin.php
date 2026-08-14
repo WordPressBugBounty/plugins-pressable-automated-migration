@@ -24,7 +24,7 @@ class PBLWPAdmin {
 	}
 
 	function removeAdminNotices() {
-		if (array_key_exists('page', $_REQUEST) && $_REQUEST['page'] == $this->bvinfo->plugname) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if (PBLHelper::getRawParam('REQUEST', 'page') === $this->bvinfo->plugname) {
 			remove_all_actions('admin_notices');
 			remove_all_actions('all_admin_notices');
 		}
@@ -58,7 +58,8 @@ class PBLWPAdmin {
 
 		if ($slug === $bvslug && is_array($brand) && array_key_exists('hide_plugin_details', $brand)) {
 			foreach ($plugin_metas as $pluginKey => $pluginValue) {
-				if (strpos($pluginValue, sprintf('>%s<', translate('View details')))) {
+				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+				if (strpos($pluginValue, sprintf('>%s<', __('View details')))) {
 					unset($plugin_metas[$pluginKey]);
 					break;
 				}
@@ -69,6 +70,7 @@ class PBLWPAdmin {
 
 	public function settingsLink($links, $file) {
 		if ( $file == plugin_basename( dirname(__FILE__).'/pressable.php' ) ) {
+			// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 			$links[] = '<a href="'.$this->mainUrl().'">'.__( 'Settings' ).'</a>';
 		}
 		return $links;
@@ -76,8 +78,7 @@ class PBLWPAdmin {
 
 	public function pblsecAdminMenu($hook) {
 		if ($hook === 'toplevel_page_pressable') {
-			wp_register_style('bvpbl_form-styles', plugins_url('assets/css/style.css', __FILE__));
-			wp_enqueue_style('bvpbl_form-styles');
+			wp_enqueue_style('bvpbl_form-styles', plugins_url('assets/css/style.css', __FILE__), array(), $this->bvinfo->version);
 		}
 	}
 
@@ -100,7 +101,9 @@ class PBLWPAdmin {
 	public function siteInfoTags() {
 		require_once dirname( __FILE__ ) . '/recover.php';
 		$secret = PBLRecover::defaultSecret($this->settings);
+		$ctag = PBLRecover::connectionTag($this->settings);
 		$public = PBLAccount::getApiPublicKey($this->settings);
+		$server_ip = PBLHelper::getStringParamEscaped('SERVER', 'SERVER_ADDR', 'attr');
 		$tags = "<input type='hidden' name='url' value='".esc_attr($this->siteinfo->wpurl())."'/>\n".
 				"<input type='hidden' name='homeurl' value='".esc_attr($this->siteinfo->homeurl())."'/>\n".
 				"<input type='hidden' name='siteurl' value='".esc_attr($this->siteinfo->siteurl())."'/>\n".
@@ -108,9 +111,10 @@ class PBLWPAdmin {
 				"<input type='hidden' name='plug' value='".esc_attr($this->bvinfo->plugname)."'/>\n".
 				"<input type='hidden' name='adminurl' value='".esc_attr($this->mainUrl())."'/>\n".
 				"<input type='hidden' name='bvversion' value='".esc_attr($this->bvinfo->version)."'/>\n".
-	 			"<input type='hidden' name='serverip' value='".esc_attr(wp_unslash($_SERVER["SERVER_ADDR"]))."'/>\n".
+	 			"<input type='hidden' name='serverip' value='".$server_ip."'/>\n".
 				"<input type='hidden' name='abspath' value='".esc_attr(ABSPATH)."'/>\n".
 				"<input type='hidden' name='secret' value='".esc_attr($secret)."'/>\n".
+				"<input type='hidden' name='bvctag' value='".esc_attr($ctag)."'/>\n".
 				"<input type='hidden' name='public' value='".esc_attr($public)."'/>\n";
 		return $tags;
 	}
