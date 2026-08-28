@@ -11,7 +11,7 @@ if (!class_exists('PBLInfo')) :
 		public $ip_header_option = 'pblipheader';
 		public $brand_option = 'pblbrand';
 		public $wp_lp_whitelabel_option = 'pblLpWhitelabelConf';
-		public $version = '6.65';
+		public $version = '6.72';
 		public $webpage = 'https://pressable.com';
 		public $appurl = 'https://migrate.blogvault.net';
 		public $slug = 'pressable-automated-migration/pressable.php';
